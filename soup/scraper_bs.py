@@ -4,9 +4,11 @@ import pandas as pd
 from lxml import html
 from time import time
 
+# Boolean variable to limit the number of profiles to scrape
 limit_profiles = True
 
 
+# This function scrapes athlete profile information from a given URL
 def scrape_athlete_profile(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
@@ -28,6 +30,7 @@ def scrape_athlete_profile(url):
             if distance:
                 records[distance] = time
 
+    # Combine all scraped data
     athlete_info = {
         "Name": name,
         "Country": country,
@@ -38,12 +41,14 @@ def scrape_athlete_profile(url):
     return athlete_info
 
 
+# This function scrapes URLs of athlete profiles from a given URL
 def scrape_athlete_info(url):
     response = requests.get(url)
     soup = BeautifulSoup(response.text, "html.parser")
 
     athlete_info = []
 
+    # Extract profile URL and add to list
     for row in soup.find_all("tr"):
         name_cells = row.find_all("td", class_="name")
         for cell in name_cells:
@@ -53,22 +58,28 @@ def scrape_athlete_info(url):
     return athlete_info
 
 
+# This function iterates over multiple pages and uses the above functions to scrape data
 def scrape_pages():
+    # URL pattern, where each page URL is constructed by substituting a page number
     url_base = "https://speedskatingresults.com/index.php?p=21&g=9999&i={}"
-    page_increment = 66
+    page_increment = 66  # Pagination increment
     max_profiles = 100 if limit_profiles else float("inf")
 
     i = 0
     profile_count = 0
     data = []
 
+    # Continue scraping while there are still profiles
     while profile_count < max_profiles:
+        # Construct URL for next page
         url = url_base.format(i)
         athlete_urls = scrape_athlete_info(url)
 
+        # If no athlete URLs found, break loop
         if not athlete_urls:
             break
 
+        # Visit each athlete URL and scrape profile data
         for url in athlete_urls:
             if profile_count >= max_profiles:
                 break
@@ -77,6 +88,7 @@ def scrape_pages():
             data.append(athlete_info)
             profile_count += 1
 
+        # Move to next page
         i += page_increment
 
     df = pd.DataFrame(data)
